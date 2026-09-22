@@ -1,0 +1,4 @@
+import "./globals.css";
+export const metadata={title:"Mefire Premium CRM",description:"CRM WhatsApp et automatisation clients"};
+const nav=["Tableau de bord","Inbox","Clients","Commandes","Activations","Abonnements","Paiements","SAV","Campagnes","Automatisations","Services","Statistiques","Paramètres"];
+export default function RootLayout({children}:{children:React.ReactNode}){return <html lang="fr"><body><div className="shell"><aside className="side"><div className="brand">MEFIRE CRM</div><nav className="nav">{nav.map((n,i)=><a key={n} href={i===0?"/":"#"}>{n}</a>)}</nav></aside><main className="main">{children}</main></div></body></html>}
