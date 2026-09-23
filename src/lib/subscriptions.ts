@@ -1,0 +1,3 @@
+export type ActivationInput={durationDays:number|null;lifetime:boolean;startedAt?:Date};
+export function computeActivation(input:ActivationInput){const startedAt=input.startedAt??new Date();if(input.lifetime)return{startedAt,expiresAt:null,lifetime:true,status:'active' as const};if(!input.durationDays||input.durationDays<1)throw new Error('Durée d’abonnement invalide');const expiresAt=new Date(startedAt);expiresAt.setUTCDate(expiresAt.getUTCDate()+input.durationDays);return{startedAt,expiresAt,lifetime:false,status:'active' as const};}
+export function daysRemaining(expiresAt:Date,now=new Date()){return Math.max(0,Math.ceil((expiresAt.getTime()-now.getTime())/86400000));}
