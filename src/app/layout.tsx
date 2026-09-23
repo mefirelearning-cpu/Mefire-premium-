@@ -1,4 +1,4 @@
 import "./globals.css";
 export const metadata={title:"Mefire Premium CRM",description:"CRM WhatsApp et automatisation clients"};
-const nav=[['Tableau de bord','/'],['Inbox','#'],['Clients','/clients'],['Commandes','#'],['Activations','#'],['Abonnements','#'],['Paiements','#'],['SAV','#'],['Campagnes','#'],['Automatisations','/automatisations'],['Services','/services'],['Statistiques','#'],['Paramètres','#']];
+const nav=[['Tableau de bord','/'],['Inbox','#'],['Clients','/clients'],['Commandes','/commandes'],['Activations','/activations'],['Abonnements','/abonnements'],['Paiements','/paiements'],['SAV','#'],['Campagnes','/campagnes'],['Automatisations','/automatisations'],['Services','/services'],['Statistiques','#'],['Paramètres','#']];
 export default function RootLayout({children}:{children:React.ReactNode}){return <html lang="fr"><body><div className="shell"><aside className="side"><div className="brand">MEFIRE CRM</div><nav className="nav">{nav.map(([n,href])=><a key={n} href={href}>{n}</a>)}</nav></aside><main className="main">{children}</main></div></body></html>}
