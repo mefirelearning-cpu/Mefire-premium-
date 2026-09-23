@@ -1,5 +1,6 @@
 import {NextRequest,NextResponse} from 'next/server';
 import {extractIncomingWhatsApp,persistIncomingWhatsApp} from '@/lib/whatsapp-inbound';
+import {handleIncomingWithAI} from '@/lib/ai-orchestrator';
 export const runtime='nodejs';
 export async function GET(req:NextRequest){
  const q=req.nextUrl.searchParams;
@@ -11,7 +12,12 @@ export async function POST(req:NextRequest){
   const body=await req.json();
   const incoming=extractIncomingWhatsApp(body);
   const results=[];
-  for(const message of incoming)results.push(await persistIncomingWhatsApp(message));
+  for(const item of incoming){
+   const saved=await persistIncomingWhatsApp(item);
+   let ai=null;
+   if(!saved.duplicate&&saved.customerId&&saved.conversationId)ai=await handleIncomingWithAI({customerId:saved.customerId,conversationId:saved.conversationId,text:item.text});
+   results.push({saved,ai});
+  }
   return NextResponse.json({received:true,messages:incoming.length,results});
  }catch(e){
   console.error('WhatsApp webhook error',e);
