@@ -1,4 +1,5 @@
 import {NextRequest,NextResponse} from 'next/server';
+import {extractIncomingWhatsApp,persistIncomingWhatsApp} from '@/lib/whatsapp-inbound';
 export const runtime='nodejs';
 export async function GET(req:NextRequest){
  const q=req.nextUrl.searchParams;
@@ -6,7 +7,14 @@ export async function GET(req:NextRequest){
  return new NextResponse('Forbidden',{status:403});
 }
 export async function POST(req:NextRequest){
- const body=await req.json();
- // Accusé rapide pour éviter les retries Meta. La persistance des messages entrants sera branchée ici.
- return NextResponse.json({received:true,entries:Array.isArray(body?.entry)?body.entry.length:0});
+ try{
+  const body=await req.json();
+  const incoming=extractIncomingWhatsApp(body);
+  const results=[];
+  for(const message of incoming)results.push(await persistIncomingWhatsApp(message));
+  return NextResponse.json({received:true,messages:incoming.length,results});
+ }catch(e){
+  console.error('WhatsApp webhook error',e);
+  return NextResponse.json({received:true,error:'processing_failed'});
+ }
 }
