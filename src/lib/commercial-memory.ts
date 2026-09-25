@@ -66,14 +66,22 @@ async function recentConversation(conversationId:string){
  return rows.reverse();
 }
 
+async function relevantPastConversation(customerId:string,currentConversationId:string,query:string){
+ const rows=await db.select({conversationId:conversations.id,channel:conversations.channel,direction:messages.direction,senderType:messages.senderType,content:messages.content,createdAt:messages.createdAt})
+  .from(messages).innerJoin(conversations,eq(messages.conversationId,conversations.id)).where(eq(conversations.customerId,customerId)).orderBy(desc(messages.createdAt)).limit(500);
+ const ranked=rows.filter(x=>x.conversationId!==currentConversationId).map(x=>({row:x,score:score(x.content,query)})).filter(x=>x.score>0).sort((a,b)=>b.score-a.score||b.row.createdAt.getTime()-a.row.createdAt.getTime()).slice(0,10).map(x=>x.row);
+ return ranked;
+}
+
 export async function buildCommercialMemoryContext(input:{customerId:string;conversationId:string;query:string}){
- const [profile,subs,history,memory]=await Promise.all([
+ const [profile,subs,history,past,memory]=await Promise.all([
   db.select({firstName:customers.firstName,lastName:customers.lastName,phone:customers.phone,preferredLanguage:customers.preferredLanguage,status:customers.status,totalSpent:customers.totalSpent}).from(customers).where(eq(customers.id,input.customerId)).limit(1).then(x=>x[0]||null),
   customerSubscriptions(input.customerId),
   recentConversation(input.conversationId),
+  relevantPastConversation(input.customerId,input.conversationId,input.query),
   relevantMemory(input.customerId,input.query)
  ]);
- return {profile,subscriptions:subs,recentHistory:history,styleExamples:memory.styles,customerNotes:memory.notes,knowledge:memory.knowledge};
+ return {profile,subscriptions:subs,recentHistory:history,relevantPastMessages:past,styleExamples:memory.styles,customerNotes:memory.notes,knowledge:memory.knowledge};
 }
 
 export async function memoryStats(){
