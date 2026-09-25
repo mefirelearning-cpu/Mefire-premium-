@@ -1,2 +1,9 @@
 import {activateSubscriptionAction} from '@/app/actions/crm';
-export default function Activations(){return <><div className="top"><div><h1>File d’activations</h1><div className="muted">Seules les opérations nécessitant ton intervention.</div></div></div><section className="cols" style={{marginTop:24}}><form className="card" action={activateSubscriptionAction}><h2>Activer un abonnement</h2><label>ID abonnement *</label><input name="subscriptionId" required/><p className="muted">L’activation calcule l’expiration à partir de la formule et écrit l’action dans l’audit.</p><button type="submit">Confirmer l’activation</button></form><div className="card"><h2>À activer</h2><p className="muted">Les abonnements en attente apparaîtront ici dès qu’ils existent dans PostgreSQL.</p></div></section></>}
+import {listPendingActivations} from '@/lib/admin-data';
+export const dynamic='force-dynamic';
+
+export default async function Activations(){
+ const rows=await listPendingActivations();
+ return <><div className="top"><div><h1>File d’activations</h1><div className="muted">Abonnements dont le paiement a été vérifié et qui nécessitent ton intervention.</div></div><strong>{rows.length} à activer</strong></div>
+ <div className="card" style={{marginTop:24}}><h2>À activer</h2>{rows.length===0?<p className="muted">Aucune activation en attente.</p>:rows.map(r=><div className="row" key={r.subscriptionId}><span><strong>{[r.firstName,r.lastName].filter(Boolean).join(' ')||r.phone}</strong><br/><span className="muted">{r.serviceName} · {r.planName} · {r.lifetime?'À vie':`${r.durationDays??0} jours`}</span></span><form action={activateSubscriptionAction}><input type="hidden" name="subscriptionId" value={r.subscriptionId}/><button type="submit">Activer</button></form></div>)}</div></>;
+}
