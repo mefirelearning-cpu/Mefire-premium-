@@ -30,18 +30,22 @@ export async function getDashboardMetrics():Promise<DashboardMetrics>{
    (SELECT count(*) FROM scheduled_jobs WHERE status='done' AND job_type IN ('expiration_j7','expiration_j3','expiration_j1')) AS expiration_reminders_done,
    COALESCE((SELECT sum(renewal_count) FROM subscriptions),0) AS renewals
  `);
- const row=result.rows?.[0]??{};
+ const row=(result.rows?.[0]??{}) as Record<string,unknown>;
+ const value=(key:string):string|number=>{
+  const v=row[key];
+  return typeof v==='string'||typeof v==='number'?v:0;
+ };
  return {
-  monthly_revenue:row.monthly_revenue??0,
-  active_customers:row.active_customers??0,
-  activations:row.activations??0,
-  expiring_7d:row.expiring_7d??0,
-  payments_to_verify:row.payments_to_verify??0,
-  human_takeovers:row.human_takeovers??0,
-  new_orders:row.new_orders??0,
-  ai_messages:row.ai_messages??0,
-  satisfaction_done:row.satisfaction_done??0,
-  expiration_reminders_done:row.expiration_reminders_done??0,
-  renewals:row.renewals??0
+  monthly_revenue:value('monthly_revenue'),
+  active_customers:value('active_customers'),
+  activations:value('activations'),
+  expiring_7d:value('expiring_7d'),
+  payments_to_verify:value('payments_to_verify'),
+  human_takeovers:value('human_takeovers'),
+  new_orders:value('new_orders'),
+  ai_messages:value('ai_messages'),
+  satisfaction_done:value('satisfaction_done'),
+  expiration_reminders_done:value('expiration_reminders_done'),
+  renewals:value('renewals')
  };
 }
