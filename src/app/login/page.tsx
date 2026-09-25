@@ -1,0 +1,5 @@
+export default async function LoginPage({searchParams}:{searchParams:Promise<{error?:string}>}){
+ const {error}=await searchParams;
+ const message=error==='invalid'?'Nom d’utilisateur ou mot de passe incorrect.':error==='config'?'Configuration administrateur incomplète dans Vercel.':'';
+ return <main style={{minHeight:'100vh',display:'grid',placeItems:'center',padding:20,background:'#f5f6f8'}}><form method="post" action="/api/auth/login" className="card" style={{width:'100%',maxWidth:420,display:'grid',gap:12}}><div><h1 style={{marginBottom:8}}>Connexion administrateur</h1><p className="muted">Accès privé à Mefire Premium CRM.</p></div>{message&&<div style={{padding:12,border:'1px solid #fecaca',borderRadius:9,background:'#fef2f2'}}>{message}</div>}<label>Nom d’utilisateur</label><input name="username" autoComplete="username" required/><label>Mot de passe</label><input name="password" type="password" autoComplete="current-password" required/><button type="submit">Se connecter</button></form></main>;
+}
