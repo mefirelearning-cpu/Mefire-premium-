@@ -1,7 +1,8 @@
 import {and,eq,lte,sql} from 'drizzle-orm';
 import {db} from '@/db';
-import {scheduledJobs,subscriptions,customers,servicePlans,services} from '@/db/schema';
+import {automationRules,scheduledJobs,subscriptions,customers,servicePlans,services} from '@/db/schema';
 import {sendWhatsAppText} from './whatsapp';
+const GLOBAL_PAUSE='__GLOBAL_PAUSE__';
 function message(type:string,name:string,service:string,expiresAt:Date|null){
  if(type==='satisfaction_j2')return `Bonjour ${name}, nous espérons que votre service ${service} fonctionne correctement. Êtes-vous satisfait(e) ?`;
  const date=expiresAt?new Intl.DateTimeFormat('fr-FR',{dateStyle:'medium',timeZone:'Africa/Douala'}).format(expiresAt):'';
@@ -9,6 +10,8 @@ function message(type:string,name:string,service:string,expiresAt:Date|null){
  return `Bonjour ${name}, votre abonnement ${service} expire dans ${d} jour(s), le ${date}. Répondez à ce message si vous souhaitez le renouveler.`;
 }
 export async function processDueJobs(limit=20){
+ const [pause]=await db.select({id:automationRules.id}).from(automationRules).where(and(eq(automationRules.name,GLOBAL_PAUSE),eq(automationRules.enabled,true))).limit(1);
+ if(pause)return{processed:0,done:0,failed:0,paused:true};
  const now=new Date();
  const jobs=await db.select().from(scheduledJobs).where(and(eq(scheduledJobs.status,'pending'),lte(scheduledJobs.runAt,now))).limit(limit);
  let done=0,failed=0;
@@ -23,5 +26,5 @@ export async function processDueJobs(limit=20){
    await db.update(scheduledJobs).set({status:'done',processedAt:new Date(),lastError:null,updatedAt:new Date()}).where(eq(scheduledJobs.id,job.id));done++;
   }catch(e){await db.update(scheduledJobs).set({status:'pending',lastError:e instanceof Error?e.message:'Erreur inconnue',updatedAt:new Date()}).where(eq(scheduledJobs.id,job.id));failed++;}
  }
- return{processed:jobs.length,done,failed};
+ return{processed:jobs.length,done,failed,paused:false};
 }
