@@ -70,6 +70,8 @@ export async function importWhatsAppChat(input:{raw:string;ownNames:string;clien
  if(!myNames.size)throw new Error('Indique le nom qui apparaît pour toi dans l’export WhatsApp.');
  const participants=Array.from(new Set(parsed.map(x=>x.sender)));
  if(!parsed.some(x=>myNames.has(normalizeName(x.sender))))throw new Error(`Ton nom n’a pas été retrouvé. Participants détectés : ${participants.join(', ')}`);
+ const otherParticipants=participants.filter(x=>!myNames.has(normalizeName(x)));
+ if(otherParticipants.length!==1)throw new Error('Pour le moment, importe seulement une discussion privée avec un seul client. Les groupes WhatsApp seront traités séparément plus tard.');
  const phone=normalizePhone(input.clientPhone);
  const businessId=await getBusinessId();
  const hash=createHash('sha256').update(`${phone}\n${parsed.map(x=>`${x.at.toISOString()}|${x.sender}|${x.text}`).join('\n')}`).digest('hex').slice(0,40);
@@ -79,7 +81,7 @@ export async function importWhatsAppChat(input:{raw:string;ownNames:string;clien
 
  let [customer]=await db.select().from(customers).where(and(eq(customers.businessId,businessId),eq(customers.phone,phone))).limit(1);
  if(!customer){
-  const fallback=participants.find(x=>!myNames.has(normalizeName(x)))||input.clientName||'Client';
+  const fallback=otherParticipants[0]||input.clientName||'Client';
   const full=(input.clientName||fallback).trim();
   const parts=full.split(/\s+/);
   [customer]=await db.insert(customers).values({businessId,phone,firstName:parts[0]||'Client',lastName:parts.slice(1).join(' ')||null,status:'lead',lastContactAt:parsed[parsed.length-1].at}).returning();
