@@ -1,4 +1,4 @@
-import {desc,eq} from 'drizzle-orm';
+import {and,desc,eq} from 'drizzle-orm';
 import {db} from '@/db';
 import {auditLogs,conversations,customers,orders,payments,servicePlans,services,subscriptions} from '@/db/schema';
 
@@ -39,8 +39,8 @@ export type DashboardActionItem={
 
 export async function listDashboardActionItems(limit=8):Promise<DashboardActionItem[]>{
  const [proofRows,humanRows,paymentRows,activationRows]=await Promise.all([
-  db.select({id:auditLogs.id,conversationId:conversations.id,at:auditLogs.createdAt,firstName:customers.firstName,lastName:customers.lastName,phone:customers.phone}).from(auditLogs).innerJoin(conversations,eq(auditLogs.entityId,conversations.id)).innerJoin(customers,eq(conversations.customerId,customers.id)).where(eq(auditLogs.action,'payment.proof_received')).orderBy(desc(auditLogs.createdAt)).limit(20),
-  db.select({id:conversations.id,at:conversations.lastMessageAt,firstName:customers.firstName,lastName:customers.lastName,phone:customers.phone}).from(conversations).innerJoin(customers,eq(conversations.customerId,customers.id)).where(eq(conversations.humanTakeover,true)).orderBy(desc(conversations.lastMessageAt)).limit(20),
+  db.select({id:auditLogs.id,conversationId:conversations.id,at:auditLogs.createdAt,firstName:customers.firstName,lastName:customers.lastName,phone:customers.phone}).from(auditLogs).innerJoin(conversations,eq(auditLogs.entityId,conversations.id)).innerJoin(customers,eq(conversations.customerId,customers.id)).where(and(eq(auditLogs.action,'payment.proof_received'),eq(conversations.humanTakeover,true),eq(conversations.status,'open'))).orderBy(desc(auditLogs.createdAt)).limit(20),
+  db.select({id:conversations.id,at:conversations.lastMessageAt,firstName:customers.firstName,lastName:customers.lastName,phone:customers.phone}).from(conversations).innerJoin(customers,eq(conversations.customerId,customers.id)).where(and(eq(conversations.humanTakeover,true),eq(conversations.status,'open'))).orderBy(desc(conversations.lastMessageAt)).limit(20),
   db.select({id:payments.id,at:payments.createdAt,amount:payments.amount,currency:payments.currency,firstName:customers.firstName,lastName:customers.lastName,phone:customers.phone}).from(payments).innerJoin(customers,eq(payments.customerId,customers.id)).where(eq(payments.status,'submitted')).orderBy(desc(payments.createdAt)).limit(20),
   db.select({id:subscriptions.id,at:subscriptions.updatedAt,serviceName:services.name,planName:servicePlans.name,firstName:customers.firstName,lastName:customers.lastName,phone:customers.phone}).from(subscriptions).innerJoin(customers,eq(subscriptions.customerId,customers.id)).innerJoin(servicePlans,eq(subscriptions.servicePlanId,servicePlans.id)).innerJoin(services,eq(servicePlans.serviceId,services.id)).where(eq(subscriptions.status,'pending')).orderBy(desc(subscriptions.updatedAt)).limit(20)
  ]);
