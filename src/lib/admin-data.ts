@@ -21,3 +21,7 @@ export async function listPayments(){
 export async function listPendingActivations(){
  return db.select({subscriptionId:subscriptions.id,orderId:subscriptions.orderId,firstName:customers.firstName,lastName:customers.lastName,phone:customers.phone,planName:servicePlans.name,serviceName:services.name,durationDays:servicePlans.durationDays,lifetime:servicePlans.lifetime}).from(subscriptions).innerJoin(customers,eq(subscriptions.customerId,customers.id)).innerJoin(servicePlans,eq(subscriptions.servicePlanId,servicePlans.id)).innerJoin(services,eq(servicePlans.serviceId,services.id)).where(eq(subscriptions.status,'pending')).orderBy(desc(subscriptions.createdAt)).limit(100);
 }
+
+export async function listSubscriptions(){
+ return db.select({id:subscriptions.id,status:subscriptions.status,startedAt:subscriptions.startedAt,expiresAt:subscriptions.expiresAt,lifetime:subscriptions.lifetime,renewalCount:subscriptions.renewalCount,firstName:customers.firstName,lastName:customers.lastName,phone:customers.phone,planName:servicePlans.name,serviceName:services.name}).from(subscriptions).innerJoin(customers,eq(subscriptions.customerId,customers.id)).innerJoin(servicePlans,eq(subscriptions.servicePlanId,servicePlans.id)).innerJoin(services,eq(servicePlans.serviceId,services.id)).orderBy(desc(subscriptions.createdAt)).limit(100);
+}
