@@ -46,7 +46,7 @@ async function relevantMemory(customerId:string,query:string){
   const businessId=await getBusinessId();
   const rows=await db.select().from(commercialMemory).where(and(eq(commercialMemory.businessId,businessId),eq(commercialMemory.active,true))).orderBy(desc(commercialMemory.weight),desc(commercialMemory.createdAt)).limit(250);
   const visible=rows.filter(x=>!x.customerId||x.customerId===customerId);
-  const styles=visible.filter(x=>x.kind==='style').slice(0,6);
+  const styles=visible.filter(x=>x.kind==='style').slice(0,8);
   const notes=visible.filter(x=>x.kind==='customer_note'&&x.customerId===customerId).slice(0,8);
   const knowledge=visible.filter(x=>x.kind==='knowledge'||x.kind==='policy').map(x=>({row:x,score:score(`${x.title||''} ${x.content}`,query)})).sort((a,b)=>b.score-a.score||b.row.weight-a.row.weight).filter(x=>x.score>0).slice(0,8).map(x=>x.row);
   return {styles,notes,knowledge};
@@ -78,5 +78,5 @@ export async function buildCommercialMemoryContext(input:{customerId:string;conv
 
 export async function memoryStats(){
  const rows=await listMemoryEntries();
- return {total:rows.length,active:rows.filter(x=>x.active).length,style:rows.filter(x=>x.kind==='style'&&x.active).length,knowledge:rows.filter(x=>(x.kind==='knowledge'||x.kind==='policy')&&x.active).length,customerNotes:rows.filter(x=>x.kind==='customer_note'&&x.active).length};
+ return {total:rows.length,active:rows.filter(x=>x.active).length,style:rows.filter(x=>x.kind==='style'&&x.active).length,importedStyle:rows.filter(x=>x.kind==='style'&&x.active&&x.sourceType==='whatsapp_import').length,knowledge:rows.filter(x=>(x.kind==='knowledge'||x.kind==='policy')&&x.active).length,customerNotes:rows.filter(x=>x.kind==='customer_note'&&x.active).length};
 }
