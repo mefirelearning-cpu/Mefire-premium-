@@ -1,6 +1,6 @@
 import {desc,eq} from 'drizzle-orm';
 import {db} from '@/db';
-import {customers,orders,payments,servicePlans,services,subscriptions} from '@/db/schema';
+import {conversations,customers,orders,payments,servicePlans,services,subscriptions} from '@/db/schema';
 
 export async function listCustomers(){
  return db.select({id:customers.id,firstName:customers.firstName,lastName:customers.lastName,phone:customers.phone,email:customers.email,status:customers.status,totalSpent:customers.totalSpent,lastContactAt:customers.lastContactAt,createdAt:customers.createdAt}).from(customers).orderBy(desc(customers.createdAt)).limit(100);
@@ -24,4 +24,30 @@ export async function listPendingActivations(){
 
 export async function listSubscriptions(){
  return db.select({id:subscriptions.id,status:subscriptions.status,startedAt:subscriptions.startedAt,expiresAt:subscriptions.expiresAt,lifetime:subscriptions.lifetime,renewalCount:subscriptions.renewalCount,firstName:customers.firstName,lastName:customers.lastName,phone:customers.phone,planName:servicePlans.name,serviceName:services.name}).from(subscriptions).innerJoin(customers,eq(subscriptions.customerId,customers.id)).innerJoin(servicePlans,eq(subscriptions.servicePlanId,servicePlans.id)).innerJoin(services,eq(servicePlans.serviceId,services.id)).orderBy(desc(subscriptions.createdAt)).limit(100);
+}
+
+export type DashboardActionItem={
+ id:string;
+ kind:'human'|'payment'|'activation';
+ label:string;
+ title:string;
+ detail:string;
+ href:string;
+ at:Date;
+ priority:number;
+};
+
+export async function listDashboardActionItems(limit=8):Promise<DashboardActionItem[]>{
+ const [humanRows,paymentRows,activationRows]=await Promise.all([
+  db.select({id:conversations.id,at:conversations.lastMessageAt,firstName:customers.firstName,lastName:customers.lastName,phone:customers.phone}).from(conversations).innerJoin(customers,eq(conversations.customerId,customers.id)).where(eq(conversations.humanTakeover,true)).orderBy(desc(conversations.lastMessageAt)).limit(20),
+  db.select({id:payments.id,at:payments.createdAt,amount:payments.amount,currency:payments.currency,firstName:customers.firstName,lastName:customers.lastName,phone:customers.phone}).from(payments).innerJoin(customers,eq(payments.customerId,customers.id)).where(eq(payments.status,'submitted')).orderBy(desc(payments.createdAt)).limit(20),
+  db.select({id:subscriptions.id,at:subscriptions.updatedAt,serviceName:services.name,planName:servicePlans.name,firstName:customers.firstName,lastName:customers.lastName,phone:customers.phone}).from(subscriptions).innerJoin(customers,eq(subscriptions.customerId,customers.id)).innerJoin(servicePlans,eq(subscriptions.servicePlanId,servicePlans.id)).innerJoin(services,eq(servicePlans.serviceId,services.id)).where(eq(subscriptions.status,'pending')).orderBy(desc(subscriptions.updatedAt)).limit(20)
+ ]);
+ const name=(firstName:string|null,lastName:string|null,phone:string)=>[firstName,lastName].filter(Boolean).join(' ')||phone;
+ const items:DashboardActionItem[]=[
+  ...humanRows.map(x=>({id:`human:${x.id}`,kind:'human' as const,label:'Intervention',title:name(x.firstName,x.lastName,x.phone),detail:'Conversation à reprendre manuellement',href:`/inbox?id=${x.id}`,at:x.at??new Date(0),priority:1})),
+  ...paymentRows.map(x=>({id:`payment:${x.id}`,kind:'payment' as const,label:'Paiement',title:name(x.firstName,x.lastName,x.phone),detail:`${Number(x.amount).toLocaleString('fr-FR')} ${x.currency} à vérifier`,href:'/paiements',at:x.at,priority:2})),
+  ...activationRows.map(x=>({id:`activation:${x.id}`,kind:'activation' as const,label:'Activation',title:name(x.firstName,x.lastName,x.phone),detail:`${x.serviceName} · ${x.planName}`,href:'/activations',at:x.at,priority:3}))
+ ];
+ return items.sort((a,b)=>a.priority-b.priority||b.at.getTime()-a.at.getTime()).slice(0,limit);
 }
