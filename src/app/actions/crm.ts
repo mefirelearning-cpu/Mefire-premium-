@@ -2,7 +2,7 @@
 import {revalidatePath} from 'next/cache';
 import {activateSubscription,createCustomer,createOrder,createServiceWithPlan,recordPayment,verifyPayment} from '@/lib/crm';
 const required=(v:FormDataEntryValue|null,n:string)=>{const s=String(v??'').trim();if(!s)throw new Error(`${n} requis`);return s};
-const refresh=(...paths:string[])=>paths.forEach(revalidatePath);
+const refresh=(...paths:string[])=>paths.forEach(path=>revalidatePath(path));
 
 export async function createCustomerAction(form:FormData){
  await createCustomer({firstName:String(form.get('firstName')??'').trim()||undefined,lastName:String(form.get('lastName')??'').trim()||undefined,phone:required(form.get('phone'),'Téléphone'),email:String(form.get('email')??'').trim()||undefined});
