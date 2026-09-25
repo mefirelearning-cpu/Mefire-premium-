@@ -1,13 +1,15 @@
 import Link from 'next/link';
 import {getDashboardMetrics} from '@/lib/dashboard';
+import {listDashboardActionItems} from '@/lib/admin-data';
 
 export const dynamic='force-dynamic';
 
 const n=(v:string|number)=>Number(v||0);
 const money=(v:string|number)=>`${n(v).toLocaleString('fr-FR')} FCFA`;
+const time=(v:Date)=>v.getTime()===0?'—':new Intl.DateTimeFormat('fr-FR',{hour:'2-digit',minute:'2-digit',timeZone:'Africa/Douala'}).format(v);
 
 export default async function Dashboard(){
- const m=await getDashboardMetrics();
+ const [m,today]=await Promise.all([getDashboardMetrics(),listDashboardActionItems(8)]);
  const stats=[
   ['CA du mois',money(m.monthly_revenue)],
   ['Clients actifs',n(m.active_customers).toString()],
@@ -36,6 +38,10 @@ export default async function Dashboard(){
  return <>
   <div className="top"><div><h1>Centre de commande</h1><div className="muted">Données réelles du CRM, mises à jour depuis PostgreSQL.</div></div><strong>CRM en ligne</strong></div>
   <section className="quick-actions" aria-label="Actions rapides">{quick.map(([label,href,desc])=><Link className="quick-action" href={href} key={href}><strong>{label}</strong><span>{desc}</span></Link>)}</section>
+  <section className="today-card" aria-labelledby="today-title">
+   <div className="today-head"><div><h2 id="today-title">À faire aujourd’hui</h2><p className="muted">Les éléments nécessitant ton intervention, classés automatiquement par priorité.</p></div><strong>{today.length}</strong></div>
+   {today.length===0?<div className="today-empty">Aucune intervention urgente pour le moment.</div>:<div className="today-list">{today.map(item=><Link className={`today-item today-${item.kind}`} href={item.href} key={item.id}><span className="today-type">{item.label}</span><span className="today-copy"><strong>{item.title}</strong><small>{item.detail}</small></span><span className="today-time">{time(item.at)}</span></Link>)}</div>}
+  </section>
   <section className="grid">{stats.map(([l,v])=><div className="card" key={l}><div className="muted">{l}</div><div className="value">{v}</div></div>)}</section>
   <section className="cols">
    <div className="card"><h2>Actions requises</h2>{actions.map(([label,value,href])=><Link className="row" href={href} key={label}><span>{label}</span><strong>{n(value)}</strong></Link>)}</div>
