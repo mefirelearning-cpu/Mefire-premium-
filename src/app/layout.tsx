@@ -1,4 +1,4 @@
 import "./globals.css";
+import AppShell from './app-shell';
 export const metadata={title:"Mefire Premium CRM",description:"CRM WhatsApp et automatisation clients"};
-const nav=[['Tableau de bord','/'],['Inbox','/inbox'],['Clients','/clients'],['Commandes','/commandes'],['Activations','/activations'],['Abonnements','/abonnements'],['Paiements','/paiements'],['SAV','/sav'],['Campagnes','/campagnes'],['Automatisations','/automatisations'],['Services','/services'],['Statistiques','/statistiques'],['Paramètres','/parametres']];
-export default function RootLayout({children}:{children:React.ReactNode}){return <html lang="fr"><body><div className="shell"><aside className="side"><div className="brand">MEFIRE CRM</div><nav className="nav">{nav.map(([n,href])=><a key={n} href={href}>{n}</a>)}</nav></aside><main className="main">{children}</main></div></body></html>}
+export default function RootLayout({children}:{children:React.ReactNode}){return <html lang="fr"><body><AppShell>{children}</AppShell></body></html>}
