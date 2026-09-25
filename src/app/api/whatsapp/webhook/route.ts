@@ -2,6 +2,7 @@ import {createHmac,timingSafeEqual} from 'crypto';
 import {NextRequest,NextResponse} from 'next/server';
 import {extractIncomingWhatsApp,extractWhatsAppStatuses,persistIncomingWhatsApp,persistWhatsAppStatuses} from '@/lib/whatsapp-inbound';
 import {handleIncomingWithAI} from '@/lib/ai-orchestrator';
+import {handlePaymentHandoff} from '@/lib/payment-handoff';
 export const runtime='nodejs';
 
 function verifyMetaSignature(rawBody:string,signature:string|null){
@@ -29,9 +30,12 @@ export async function POST(req:NextRequest){
   const results=[];
   for(const item of incoming){
    const saved=await persistIncomingWhatsApp(item);
-   let ai=null;
-   if(!saved.duplicate&&saved.customerId&&saved.conversationId)ai=await handleIncomingWithAI({customerId:saved.customerId,conversationId:saved.conversationId,text:item.text});
-   results.push({saved,ai});
+   let flow=null,ai=null;
+   if(!saved.duplicate&&saved.customerId&&saved.conversationId){
+    flow=await handlePaymentHandoff({item,customerId:saved.customerId,conversationId:saved.conversationId,messageId:saved.messageId});
+    if(!flow.handled&&item.type==='text')ai=await handleIncomingWithAI({customerId:saved.customerId,conversationId:saved.conversationId,text:item.text});
+   }
+   results.push({saved,flow,ai});
   }
   return NextResponse.json({received:true,messages:incoming.length,statuses:statuses.length,results});
  }catch(e){
