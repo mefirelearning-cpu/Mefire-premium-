@@ -2,6 +2,7 @@ import {and,asc,desc,eq} from 'drizzle-orm';
 import {db} from '@/db';
 import {auditLogs,automationRules,businesses,conversations,customers,scheduledJobs,subscriptions} from '@/db/schema';
 
+const GLOBAL_PAUSE='__GLOBAL_PAUSE__';
 async function getBusinessId(){const [b]=await db.select({id:businesses.id}).from(businesses).limit(1);if(!b)throw new Error('Entreprise non initialisée');return b.id;}
 
 export async function listSupportQueue(){
@@ -34,24 +35,28 @@ export async function getCampaignSegments(){
 }
 
 export async function listAutomationOverview(){
- const [rules,jobs]=await Promise.all([
+ const [rulesRaw,jobs]=await Promise.all([
   db.select().from(automationRules).orderBy(asc(automationRules.priority),asc(automationRules.name)),
   db.select().from(scheduledJobs).orderBy(asc(scheduledJobs.runAt)).limit(100)
  ]);
- return {rules,jobs};
+ const globalPaused=rulesRaw.some(r=>r.name===GLOBAL_PAUSE&&r.enabled);
+ const rules=rulesRaw.filter(r=>r.name!==GLOBAL_PAUSE);
+ return {rules,jobs,globalPaused};
 }
 
 export async function pauseAutomations(){
- const now=new Date();
+ const now=new Date(),bid=await getBusinessId();
+ const [flag]=await db.select().from(automationRules).where(and(eq(automationRules.businessId,bid),eq(automationRules.name,GLOBAL_PAUSE))).limit(1);
+ if(flag)await db.update(automationRules).set({enabled:true,updatedAt:now}).where(eq(automationRules.id,flag.id));
+ else await db.insert(automationRules).values({businessId:bid,name:GLOBAL_PAUSE,enabled:true,triggerType:'system',triggerConfig:{},conditions:{},actions:[],priority:0});
  await db.update(scheduledJobs).set({status:'paused',updatedAt:now}).where(eq(scheduledJobs.status,'pending'));
- const bid=await getBusinessId();
  await db.insert(auditLogs).values({businessId:bid,actorType:'admin',action:'automation.paused',entityType:'scheduled_jobs'});
 }
 
 export async function resumeAutomations(){
- const now=new Date();
+ const now=new Date(),bid=await getBusinessId();
+ await db.update(automationRules).set({enabled:false,updatedAt:now}).where(and(eq(automationRules.businessId,bid),eq(automationRules.name,GLOBAL_PAUSE)));
  await db.update(scheduledJobs).set({status:'pending',updatedAt:now}).where(eq(scheduledJobs.status,'paused'));
- const bid=await getBusinessId();
  await db.insert(auditLogs).values({businessId:bid,actorType:'admin',action:'automation.resumed',entityType:'scheduled_jobs'});
 }
 
