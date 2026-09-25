@@ -1,6 +1,6 @@
 import {desc,eq} from 'drizzle-orm';
 import {db} from '@/db';
-import {conversations,customers,orders,payments,servicePlans,services,subscriptions} from '@/db/schema';
+import {auditLogs,conversations,customers,orders,payments,servicePlans,services,subscriptions} from '@/db/schema';
 
 export async function listCustomers(){
  return db.select({id:customers.id,firstName:customers.firstName,lastName:customers.lastName,phone:customers.phone,email:customers.email,status:customers.status,totalSpent:customers.totalSpent,lastContactAt:customers.lastContactAt,createdAt:customers.createdAt}).from(customers).orderBy(desc(customers.createdAt)).limit(100);
@@ -28,7 +28,7 @@ export async function listSubscriptions(){
 
 export type DashboardActionItem={
  id:string;
- kind:'human'|'payment'|'activation';
+ kind:'human'|'payment'|'payment-proof'|'activation';
  label:string;
  title:string;
  detail:string;
@@ -38,14 +38,17 @@ export type DashboardActionItem={
 };
 
 export async function listDashboardActionItems(limit=8):Promise<DashboardActionItem[]>{
- const [humanRows,paymentRows,activationRows]=await Promise.all([
+ const [proofRows,humanRows,paymentRows,activationRows]=await Promise.all([
+  db.select({id:auditLogs.id,conversationId:conversations.id,at:auditLogs.createdAt,firstName:customers.firstName,lastName:customers.lastName,phone:customers.phone}).from(auditLogs).innerJoin(conversations,eq(auditLogs.entityId,conversations.id)).innerJoin(customers,eq(conversations.customerId,customers.id)).where(eq(auditLogs.action,'payment.proof_received')).orderBy(desc(auditLogs.createdAt)).limit(20),
   db.select({id:conversations.id,at:conversations.lastMessageAt,firstName:customers.firstName,lastName:customers.lastName,phone:customers.phone}).from(conversations).innerJoin(customers,eq(conversations.customerId,customers.id)).where(eq(conversations.humanTakeover,true)).orderBy(desc(conversations.lastMessageAt)).limit(20),
   db.select({id:payments.id,at:payments.createdAt,amount:payments.amount,currency:payments.currency,firstName:customers.firstName,lastName:customers.lastName,phone:customers.phone}).from(payments).innerJoin(customers,eq(payments.customerId,customers.id)).where(eq(payments.status,'submitted')).orderBy(desc(payments.createdAt)).limit(20),
   db.select({id:subscriptions.id,at:subscriptions.updatedAt,serviceName:services.name,planName:servicePlans.name,firstName:customers.firstName,lastName:customers.lastName,phone:customers.phone}).from(subscriptions).innerJoin(customers,eq(subscriptions.customerId,customers.id)).innerJoin(servicePlans,eq(subscriptions.servicePlanId,servicePlans.id)).innerJoin(services,eq(servicePlans.serviceId,services.id)).where(eq(subscriptions.status,'pending')).orderBy(desc(subscriptions.updatedAt)).limit(20)
  ]);
+ const proofConversationIds=new Set(proofRows.map(x=>x.conversationId));
  const name=(firstName:string|null,lastName:string|null,phone:string)=>[firstName,lastName].filter(Boolean).join(' ')||phone;
  const items:DashboardActionItem[]=[
-  ...humanRows.map(x=>({id:`human:${x.id}`,kind:'human' as const,label:'Intervention',title:name(x.firstName,x.lastName,x.phone),detail:'Conversation à reprendre manuellement',href:`/inbox?id=${x.id}`,at:x.at??new Date(0),priority:1})),
+  ...proofRows.map(x=>({id:`proof:${x.id}`,kind:'payment-proof' as const,label:'Preuve paiement',title:name(x.firstName,x.lastName,x.phone),detail:'Capture reçue — vérifier puis lancer l’activation',href:`/inbox?id=${x.conversationId}`,at:x.at,priority:0})),
+  ...humanRows.filter(x=>!proofConversationIds.has(x.id)).map(x=>({id:`human:${x.id}`,kind:'human' as const,label:'Intervention',title:name(x.firstName,x.lastName,x.phone),detail:'Conversation à reprendre manuellement',href:`/inbox?id=${x.id}`,at:x.at??new Date(0),priority:1})),
   ...paymentRows.map(x=>({id:`payment:${x.id}`,kind:'payment' as const,label:'Paiement',title:name(x.firstName,x.lastName,x.phone),detail:`${Number(x.amount).toLocaleString('fr-FR')} ${x.currency} à vérifier`,href:'/paiements',at:x.at,priority:2})),
   ...activationRows.map(x=>({id:`activation:${x.id}`,kind:'activation' as const,label:'Activation',title:name(x.firstName,x.lastName,x.phone),detail:`${x.serviceName} · ${x.planName}`,href:'/activations',at:x.at,priority:3}))
  ];
