@@ -3,6 +3,7 @@ import {db} from '@/db';
 import {businesses,conversations,customers,messages} from '@/db/schema';
 
 export type IncomingWhatsApp={providerMessageId:string;from:string;text:string;profileName?:string};
+export type WhatsAppStatus={providerMessageId:string;status:string};
 function phoneVariants(raw:string){const d=raw.replace(/\D/g,'');return [d,`+${d}`];}
 async function getBusinessId(){const [b]=await db.select({id:businesses.id}).from(businesses).limit(1);if(!b)throw new Error('Entreprise non initialisée');return b.id;}
 
@@ -21,11 +22,25 @@ export async function persistIncomingWhatsApp(input:IncomingWhatsApp){
  return{duplicate:!message,customerId:customer.id,conversationId:conversation.id,messageId:message?.id};
 }
 
+export async function persistWhatsAppStatuses(items:WhatsAppStatus[]){
+ for(const item of items){
+  await db.update(messages).set({deliveryStatus:item.status}).where(eq(messages.providerMessageId,item.providerMessageId));
+ }
+}
+
 export function extractIncomingWhatsApp(body:any):IncomingWhatsApp[]{
  const out:IncomingWhatsApp[]=[];
  for(const entry of body?.entry??[])for(const change of entry?.changes??[]){
   const value=change?.value; const name=value?.contacts?.[0]?.profile?.name;
   for(const m of value?.messages??[]){if(m?.id&&m?.from&&m?.type==='text'&&m?.text?.body)out.push({providerMessageId:m.id,from:m.from,text:m.text.body,profileName:name});}
+ }
+ return out;
+}
+
+export function extractWhatsAppStatuses(body:any):WhatsAppStatus[]{
+ const out:WhatsAppStatus[]=[];
+ for(const entry of body?.entry??[])for(const change of entry?.changes??[]){
+  for(const s of change?.value?.statuses??[]){if(s?.id&&s?.status)out.push({providerMessageId:s.id,status:String(s.status)});}
  }
  return out;
 }
