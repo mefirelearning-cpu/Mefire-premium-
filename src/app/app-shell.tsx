@@ -3,7 +3,7 @@ import {useState} from 'react';
 import {usePathname} from 'next/navigation';
 
 const groups=[
- {label:'Principal',items:[['Tableau de bord','/'],['Inbox','/inbox'],['Clients','/clients']]},
+ {label:'Principal',items:[['Tableau de bord','/'],['Mefire AI','/mefire-ai'],['Inbox','/inbox'],['Clients','/clients']]},
  {label:'Ventes',items:[['Commandes','/commandes'],['Activations','/activations'],['Abonnements','/abonnements'],['Paiements','/paiements']]},
  {label:'Gestion',items:[['SAV','/sav'],['Campagnes','/campagnes'],['Automatisations','/automatisations'],['Services','/services'],['Mémoire IA','/memoire'],['Statistiques','/statistiques'],['Paramètres','/parametres']]}
 ];
