@@ -14,9 +14,13 @@ async function businessId(){
 
 function parsePlan(raw:string):AgentPlan{
  const cleaned=raw.replace(/^```json\s*/i,'').replace(/```$/,'').trim();
- const parsed=JSON.parse(cleaned);
+ const parsed=JSON.parse(cleaned) as {reformulation?:unknown;actions?:unknown};
  if(!parsed||typeof parsed.reformulation!=='string'||!Array.isArray(parsed.actions))throw new Error('Plan IA invalide');
- return{reformulation:parsed.reformulation.slice(0,3000),actions:parsed.actions.slice(0,20).map((x:any)=>({type:String(x?.type||'unsupported'),args:x?.args&&typeof x.args==='object'?x.args:{}}))};
+ const actions:AgentAction[]=parsed.actions.slice(0,20).map((item:unknown)=>{
+  const x=(item&&typeof item==='object'?item:{}) as {type?:unknown;args?:unknown};
+  return{type:String(x.type||'unsupported'),args:(x.args&&typeof x.args==='object'?x.args:{}) as Record<string,unknown>};
+ });
+ return{reformulation:parsed.reformulation.slice(0,3000),actions};
 }
 
 export async function proposeAdminCommand(prompt:string){
@@ -27,6 +31,7 @@ export async function proposeAdminCommand(prompt:string){
  const raw=await aiChat([{role:'system',content:system},{role:'user',content:text}],{temperature:0.1,json:true});
  const plan=parsePlan(raw);
  const [row]=await db.insert(aiAdminCommands).values({businessId:bid,prompt:text,reformulation:plan.reformulation,plan:plan.actions,status:'awaiting_confirmation',requiresConfirmation:true}).returning();
+ if(!row)throw new Error('Impossible d’enregistrer la commande IA');
  await db.insert(auditLogs).values({businessId:bid,actorType:'admin_ai',action:'ai.command.proposed',entityType:'ai_admin_command',entityId:row.id,metadata:{prompt:text,reformulation:plan.reformulation}});
  return row;
 }
@@ -80,7 +85,11 @@ async function executeAction(action:AgentAction){
   if(!tagName)throw new Error('Nom d’étiquette manquant');
   const bid=await businessId();
   let [tag]=await db.select().from(tagDefinitions).where(and(eq(tagDefinitions.businessId,bid),sql`lower(${tagDefinitions.name})=lower(${tagName})`)).limit(1);
-  if(!tag)[tag]=await db.insert(tagDefinitions).values({businessId:bid,name:tagName}).returning().then(x=>x[0]);
+  if(!tag){
+   const inserted=await db.insert(tagDefinitions).values({businessId:bid,name:tagName}).returning();
+   tag=inserted[0];
+  }
+  if(!tag)throw new Error('Impossible de créer l’étiquette');
   const rows=await matchedCustomers({...args,limit:500});
   const uniqueIds=[...new Set(rows.map(r=>r.id))];
   if(uniqueIds.length)await db.insert(customerTags).values(uniqueIds.map(customerId=>({customerId,tagId:tag.id}))).onConflictDoNothing({target:[customerTags.customerId,customerTags.tagId]});
@@ -109,7 +118,7 @@ export async function executeAdminCommand(id:string){
  await db.update(aiAdminCommands).set({status:'executing',confirmedAt:now,updatedAt:now}).where(eq(aiAdminCommands.id,id));
  try{
   const actions=(Array.isArray(command.plan)?command.plan:[]) as AgentAction[];
-  const results=[];
+  const results:Array<Record<string,unknown>>=[];
   for(const action of actions)results.push(await executeAction(action));
   const result={actions:results};
   await db.update(aiAdminCommands).set({status:'executed',executedAt:new Date(),result,updatedAt:new Date()}).where(eq(aiAdminCommands.id,id));
