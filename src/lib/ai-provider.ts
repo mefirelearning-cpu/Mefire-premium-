@@ -1,6 +1,7 @@
 type ChatMessage={role:'system'|'user'|'assistant';content:string};
+type ProviderConfig={url:string;key:string;model:string;headers:Record<string,string>};
 
-function providerConfig(){
+function providerConfig():ProviderConfig|null{
  const openRouterKey=process.env.OPENROUTER_API_KEY?.trim();
  if(openRouterKey){
   return{
@@ -18,9 +19,10 @@ function providerConfig(){
 export async function aiChat(messages:ChatMessage[],options?:{temperature?:number;json?:boolean}){
  const config=providerConfig();
  if(!config)throw new Error('Aucun fournisseur IA configuré');
+ const headers:Record<string,string>={Authorization:`Bearer ${config.key}`,'Content-Type':'application/json',...config.headers};
  const response=await fetch(config.url,{
   method:'POST',
-  headers:{Authorization:`Bearer ${config.key}`,'Content-Type':'application/json',...config.headers},
+  headers,
   body:JSON.stringify({
    model:config.model,
    messages,
