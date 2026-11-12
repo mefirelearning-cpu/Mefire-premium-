@@ -3,9 +3,9 @@ import {useState} from 'react';
 import {usePathname} from 'next/navigation';
 
 const groups=[
- {label:'Principal',items:[['Tableau de bord','/'],['Mefire AI','/mefire-ai'],['Inbox','/inbox'],['Clients','/clients']]},
+ {label:'Principal',items:[['Tableau de bord','/'],['J.A.R.V.I.S.','/jarvis'],['Inbox','/inbox'],['Clients','/clients']]},
  {label:'Ventes',items:[['Commandes','/commandes'],['Activations','/activations'],['Abonnements','/abonnements'],['Paiements','/paiements']]},
- {label:'Gestion',items:[['Dépenses','/depenses'],['SAV','/sav'],['Campagnes','/campagnes'],['Automatisations','/automatisations'],['Services','/services'],['Mémoire IA','/memoire'],['Statistiques','/statistiques'],['Paramètres','/parametres']]}
+ {label:'Gestion',items:[['Dépenses','/depenses'],['SAV','/sav'],['Campagnes','/campagnes'],['Automatisations','/automatisations'],['Services','/services'],['Mémoire IA','/memoire'],['Actions supervisées','/mefire-ai'],['Statistiques','/statistiques'],['Paramètres','/parametres']]}
 ];
 
 export default function AppShell({children}:{children:React.ReactNode}){
@@ -14,7 +14,7 @@ export default function AppShell({children}:{children:React.ReactNode}){
  if(pathname==='/login')return <>{children}</>;
  return <div className="shell">
   <aside className={`side ${open?'mobile-open':''}`}>
-   <div className="side-head"><a href="/" className="brand">MEFIRE CRM</a><button className="menu-toggle" type="button" onClick={()=>setOpen(v=>!v)} aria-expanded={open}>{open?'Fermer':'Menu'}</button></div>
+   <div className="side-head"><a href="/" className="brand">MEFIRE · JARVIS</a><button className="menu-toggle" type="button" onClick={()=>setOpen(v=>!v)} aria-expanded={open}>{open?'Fermer':'Menu'}</button></div>
    <nav className="nav" aria-label="Navigation principale">
     {groups.map(group=><div className="nav-group" key={group.label}><div className="nav-label">{group.label}</div>{group.items.map(([name,href])=><a className={pathname===href?'active':''} key={name} href={href} onClick={()=>setOpen(false)}>{name}</a>)}</div>)}
    </nav>

@@ -1,0 +1,58 @@
+name: JARVIS - CI et déploiement Vercel optionnel
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    name: Vérifier le code
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Installer les dépendances
+        run: npm install --no-audit --no-fund
+      - name: Vérification TypeScript
+        run: npx tsc --noEmit
+      - name: Compiler Next.js
+        run: npm run build
+        env:
+          DATABASE_URL: postgresql://ci:ci@localhost:5432/jarvis?sslmode=require
+          AUTH_SECRET: ci-only-non-production-secret
+          ADMIN_USERNAME: admin
+          ADMIN_PASSWORD: ci-not-for-production
+
+  deploy:
+    name: Déployer sur Vercel (si activé)
+    runs-on: ubuntu-latest
+    needs: verify
+    if: github.event_name == 'push' && vars.JARVIS_VERCEL_DEPLOY_ENABLED == 'true'
+    env:
+      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+      VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+      VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Vérifier la configuration
+        run: |
+          test -n "$VERCEL_TOKEN" || (echo "Secret VERCEL_TOKEN manquant"; exit 1)
+          test -n "$VERCEL_ORG_ID" || (echo "Secret VERCEL_ORG_ID manquant"; exit 1)
+          test -n "$VERCEL_PROJECT_ID" || (echo "Secret VERCEL_PROJECT_ID manquant"; exit 1)
+      - name: Charger la configuration Vercel
+        run: npx --yes vercel@latest pull --yes --environment=production --token="$VERCEL_TOKEN"
+      - name: Compiler pour la production
+        run: npx --yes vercel@latest build --prod --token="$VERCEL_TOKEN"
+      - name: Déployer en production
+        run: npx --yes vercel@latest deploy --prebuilt --prod --token="$VERCEL_TOKEN"
