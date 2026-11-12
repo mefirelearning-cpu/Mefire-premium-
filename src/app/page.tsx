@@ -1,51 +1,35 @@
 import Link from 'next/link';
+import {ArrowRight,UserRoundPlus,MessageCircle,CalendarDays} from 'lucide-react';
 import {getDashboardMetrics} from '@/lib/dashboard';
 import {listDashboardActionItems} from '@/lib/admin-data';
-
 export const dynamic='force-dynamic';
-
 const n=(v:string|number)=>Number(v||0);
-const money=(v:string|number)=>`${n(v).toLocaleString('fr-FR')} FCFA`;
-const time=(v:Date)=>v.getTime()===0?'—':new Intl.DateTimeFormat('fr-FR',{hour:'2-digit',minute:'2-digit',timeZone:'Africa/Douala'}).format(v);
-
+const amount=(v:string|number)=>n(v).toLocaleString('fr-FR')+' FCFA';
 export default async function Dashboard(){
- const [m,today]=await Promise.all([getDashboardMetrics(),listDashboardActionItems(8)]);
- const stats=[
-  ['CA du mois',money(m.monthly_revenue)],
-  ['Clients actifs',n(m.active_customers).toString()],
-  ['À activer',n(m.activations).toString()],
-  ['Expirent sous 7 jours',n(m.expiring_7d).toString()]
+ const [m,items]=await Promise.all([getDashboardMetrics(),listDashboardActionItems(6)]);
+ const cards=[
+  {label:'Abonnements actifs',value:n(m.active_customers).toLocaleString('fr-FR')},
+  {label:'Encaissements du mois',value:amount(m.monthly_revenue)},
+  {label:'Expirations (7 jours)',value:n(m.expiring_7d).toLocaleString('fr-FR')},
+  {label:'Paiements à vérifier',value:n(m.payments_to_verify).toLocaleString('fr-FR')}
  ];
- const quick=[
-  ['Nouveau client','/clients#nouveau-client','Créer une fiche client'],
-  ['Nouvelle commande','/commandes#nouvelle-commande','Associer un client à une formule'],
-  ['Paiements','/paiements#nouveau-paiement','Enregistrer ou vérifier un paiement'],
-  ['Activations','/activations#file-activations','Traiter les services à activer'],
-  ['Catalogue','/services#nouveau-service','Ajouter un service ou une formule']
- ] as const;
- const actions=[
-  ['Activations à effectuer',m.activations,'/activations'],
-  ['Paiements à vérifier',m.payments_to_verify,'/paiements'],
-  ['Interventions humaines',m.human_takeovers,'/inbox'],
-  ['Nouvelles commandes',m.new_orders,'/commandes']
- ] as const;
- const automation=[
-  ['Réponses IA enregistrées',m.ai_messages],
-  ['Suivis J+2 envoyés',m.satisfaction_done],
-  ['Rappels d’expiration envoyés',m.expiration_reminders_done],
-  ['Renouvellements enregistrés',m.renewals]
- ] as const;
- return <>
-  <div className="top"><div><h1>Centre de commande</h1><div className="muted">Données réelles du CRM, mises à jour depuis PostgreSQL.</div></div><strong>CRM en ligne</strong></div>
-  <section className="quick-actions" aria-label="Actions rapides">{quick.map(([label,href,desc])=><Link className="quick-action" href={href} key={href}><strong>{label}</strong><span>{desc}</span></Link>)}</section>
-  <section className="today-card" aria-labelledby="today-title">
-   <div className="today-head"><div><h2 id="today-title">À faire aujourd’hui</h2><p className="muted">Les éléments nécessitant ton intervention, classés automatiquement par priorité.</p></div><strong>{today.length}</strong></div>
-   {today.length===0?<div className="today-empty">Aucune intervention urgente pour le moment.</div>:<div className="today-list">{today.map(item=><Link className={`today-item today-${item.kind}`} href={item.href} key={item.id}><span className="today-type">{item.label}</span><span className="today-copy"><strong>{item.title}</strong><small>{item.detail}</small></span><span className="today-time">{time(item.at)}</span></Link>)}</div>}
-  </section>
-  <section className="grid">{stats.map(([l,v])=><div className="card" key={l}><div className="muted">{l}</div><div className="value">{v}</div></div>)}</section>
-  <section className="cols">
-   <div className="card"><h2>Actions requises</h2>{actions.map(([label,value,href])=><Link className="row" href={href} key={label}><span>{label}</span><strong>{n(value)}</strong></Link>)}</div>
-   <div className="card"><h2>Automatisation</h2>{automation.map(([label,value])=><div className="row" key={label}><span>{label}</span><strong>{n(value)}</strong></div>)}</div>
-  </section>
- </>;
+ const hours=new Intl.DateTimeFormat('fr-FR',{hour:'numeric',timeZone:'Africa/Douala',hour12:false}).format(new Date());
+ const hello=Number(hours)<12?'Bonjour':'Bonsoir';
+ return <div className="page-container">
+  <div className="page-header"><div><div className="eyebrow">MEFIRE PREMIUM</div><h1>{hello} 👋</h1><p>Voici l’essentiel de votre activité aujourd’hui.</p></div>
+   <Link className="primary-link" href="/clients/nouveau">＋ Nouveau client</Link>
+  </div>
+  <section className="summary-grid home-stats">{cards.map(s=><div className="stat-small" key={s.label}><span>{s.label}</span><strong>{s.value}</strong></div>)}</section>
+  <div className="dashboard-columns"><section className="surface">
+   <div className="section-title"><div><h2>À traiter</h2><p>Vos dossiers en attente d’intervention</p></div><span className="count-badge">{items.length}</span></div>
+   {items.length?items.map(item=><Link href={item.href} className="todo-row" key={item.id}><span className="todo-dot"/><span><strong>{item.title}</strong><small>{item.detail}</small></span><ArrowRight size={18}/></Link>):<div className="empty-state">Tout est à jour pour le moment.</div>}
+  </section><div className="dashboard-side">
+   <section className="surface"><div className="section-title"><h2>Accès rapides</h2></div>
+    <Link href="/clients/nouveau" className="quick-row"><UserRoundPlus size={19}/> Ajouter un client <ArrowRight size={16}/></Link>
+    <Link href="/abonnements" className="quick-row"><CalendarDays size={19}/> Voir les échéances <ArrowRight size={16}/></Link>
+    <Link href="/inbox" className="quick-row"><MessageCircle size={19}/> Ouvrir les messages <ArrowRight size={16}/></Link>
+   </section>
+   <Link href="/jarvis" className="jarvis-teaser"><div className="jarvis-mini-icon">J</div><div><strong>Besoin d’un point rapide ?</strong><span>Demandez à Jarvis un bilan ou une analyse.</span></div><ArrowRight size={20}/></Link>
+  </div></div>
+ </div>;
 }
