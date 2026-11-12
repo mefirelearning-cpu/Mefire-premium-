@@ -3,6 +3,7 @@ import {db} from '@/db';
 import {aiAdminCommands,businesses} from '@/db/schema';
 import {aiProviderStatus} from '@/lib/ai-provider';
 import {proposeAdminCommand} from '@/lib/admin-agent';
+import {answerPortfolioQuestion} from '@/lib/jarvis-portfolio';
 
 type Summary={ordersToday:number;ordersYesterday:number;activationsToday:number;activationsYesterday:number;verifiedPaymentsToday:number;cashToday:number;pendingPayments:number;pendingActivations:number;humanInterventions:number;expiringSevenDays:number};
 
@@ -71,6 +72,10 @@ export async function submitJarvisRequest(input:string){
  const prompt=input.trim().slice(0,3000);
  if(prompt.length<2)throw new Error('Message trop court');
  if(isGreeting(prompt))return saveReadOnlyReply(prompt,'À votre service, Monsieur. Demandez-moi le bilan du jour ou confiez-moi une tâche à préparer.',{kind:'greeting'});
+ if(!isMutation(prompt)){
+  const portfolio=await answerPortfolioQuestion(prompt);
+  if(portfolio)return saveReadOnlyReply(prompt,portfolio.response,portfolio.data);
+ }
  if(isDailyQuestion(prompt)){
   const report=await getJarvisSummary();
   return saveReadOnlyReply(prompt,formatReport(report),{kind:'daily_report',...report});

@@ -1,0 +1,47 @@
+
+.pilotage{max-width:1160px}.pilotage-filters{margin-bottom:17px}.pilotage-filters>h2{margin:0 0 15px;font-size:17px}
+.pilotage-filter-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;align-items:end}
+.pilotage-filter-grid label{font-size:12px;color:#66758a;margin:0;display:grid;gap:6px;font-weight:680}
+.pilotage-filter-grid input,.pilotage-filter-grid select{width:100%;font-size:13px}
+.pilotage-filter-grid .filter-search{grid-column:span 2}
+.filter-actions{display:flex;gap:12px;align-items:center;padding-bottom:0;white-space:nowrap}
+.filter-actions a{color:#61768c;font-size:13px;text-decoration:underline;text-underline-offset:3px}
+.filter-actions button{padding:12px 16px;font-size:13px}
+.pilotage-help{font-size:12px;color:#7c8998;line-height:1.55;margin:14px 0 0}
+.pilotage-indicators{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:11px;margin-bottom:19px}
+.pilotage-indicators .stat-small{padding:16px}.pilotage-indicators .stat-small span{margin:0 0 8px}
+.pilotage-indicators .stat-small strong{font-size:23px}.pilotage-indicators .stat-small small{display:block;color:#98a2b0;font-size:11px;margin-top:5px}
+.pilotage-section{margin:0 0 19px}.pilotage-section-head{display:flex;align-items:flex-start;gap:14px;justify-content:space-between;margin-bottom:16px}
+.pilotage-section-head h2{font-size:18px;margin:0 0 5px}.pilotage-section-head p{font-size:12px;margin:0;color:#909baa}
+.pilotage-section-head>a{color:#446b95;font-size:13px;font-weight:700;white-space:nowrap;padding:5px 2px}
+.pilotage-services{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.pilotage-service{display:block;border:1px solid #e8edf3;background:#fbfcfe;border-radius:11px;padding:14px}
+.pilotage-service:hover,.pilotage-service.is-picked{border-color:#b4cee6;background:#f4f8fd}
+.service-name{display:flex;align-items:baseline;justify-content:space-between;gap:12px}
+.service-name strong{font-size:14px}.service-name>span{font-size:11px;color:#7f8c9f;white-space:nowrap}
+.service-stats{display:flex;gap:11px;flex-wrap:wrap;margin-top:10px;font-size:11px;color:#7f8b9b}
+.service-stats b{color:#395775}
+.pilotage-table-wrap{max-width:100%;overflow-x:auto}
+.pilotage-table{border-collapse:collapse;width:100%;text-align:left;min-width:800px}
+.pilotage-table th{font-size:11px;letter-spacing:.03em;color:#8c96a4;font-weight:730;padding:13px 12px;background:#f7f9fc;border-bottom:1px solid #e9edf3}
+.pilotage-table td{font-size:12px;color:#3c4960;line-height:1.4;vertical-align:middle;padding:14px 12px;border-bottom:1px solid #edf0f3}
+.pilotage-table tr:last-child td{border-bottom:0}
+.pilotage-table td small{display:block;color:#96a0af;font-size:11px;margin-top:4px}
+.pilotage-table td strong{font-weight:680}.pilotage-customer{font-weight:750;color:#28568a}
+.pilotage-customer:hover{text-decoration:underline}.pilotage-number{white-space:nowrap}
+.pilotage-export{display:inline-block;padding:3px 0}
+.pilotage-pagination{display:flex;gap:18px;align-items:center;justify-content:space-between;margin-top:16px;font-size:12px}
+.pilotage-pagination a{color:#376b9e;font-weight:720}.pilotage-pagination span{color:#8993a0}
+.timeline-table{min-width:650px}
+@media(max-width:880px){.pilotage-filter-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.pilotage-indicators{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media(max-width:610px){
+ .pilotage-filters{padding:14px}.pilotage-filter-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+ .pilotage-filter-grid label{font-size:11px}.pilotage-filter-grid .filter-search{grid-column:1/-1}
+ .filter-actions{grid-column:1/-1}.filter-actions button{flex:1}
+ .pilotage-indicators{grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
+ .pilotage-indicators .stat-small{padding:13px}.pilotage-indicators .stat-small strong{font-size:20px}
+ .pilotage-indicators .stat-small span{font-size:11px}.pilotage-indicators .stat-small small{font-size:10px}
+ .pilotage-services{grid-template-columns:1fr}.service-stats{gap:9px}.pilotage-section-head{gap:8px}
+ .pilotage-section-head h2{font-size:16px}.pilotage-section-head p{font-size:11px}.pilotage-section-head>a{font-size:11px}
+ .pilotage-table th{font-size:10px;padding:10px 9px}.pilotage-table td{font-size:11px;padding:12px 9px}
+}

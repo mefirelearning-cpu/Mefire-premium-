@@ -10,7 +10,7 @@ export default async function Abonnements(){
  const pending=rows.filter(r=>r.status!=='active').length;
  return <div className="page-container">
   <div className="page-header"><div><div className="eyebrow">SUIVI</div><h1>Abonnements</h1><p>Garde la main sur les accès, les dates et les paiements.</p></div>
-   <Link className="primary-link" href="/clients/nouveau">＋ Nouveau client</Link></div>
+   <div style={{display:"flex",gap:10,flexWrap:"wrap"}}><Link className="outline-link" href="/pilotage">Vue d’ensemble →</Link><Link className="primary-link" href="/clients/nouveau">＋ Nouveau client</Link></div></div>
   <div className="summary-grid"><div className="stat-small"><span>Actifs</span><strong>{active}</strong></div><div className="stat-small"><span>À renouveler (7 j)</span><strong>{expiring}</strong></div><div className="stat-small"><span>En attente</span><strong>{pending}</strong></div></div>
   <section className="surface"><SubscriptionList rows={rows}/></section>
  </div>;

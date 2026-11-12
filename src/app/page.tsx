@@ -25,6 +25,7 @@ export default async function Dashboard(){
    {items.length?items.map(item=><Link href={item.href} className="todo-row" key={item.id}><span className="todo-dot"/><span><strong>{item.title}</strong><small>{item.detail}</small></span><ArrowRight size={18}/></Link>):<div className="empty-state">Tout est à jour pour le moment.</div>}
   </section><div className="dashboard-side">
    <section className="surface"><div className="section-title"><h2>Accès rapides</h2></div>
+    <Link href="/pilotage" className="quick-row"><CalendarDays size={19}/> Vue d’ensemble · par plateforme et mois <ArrowRight size={16}/></Link>
     <Link href="/clients/nouveau" className="quick-row"><UserRoundPlus size={19}/> Ajouter un client <ArrowRight size={16}/></Link>
     <Link href="/abonnements" className="quick-row"><CalendarDays size={19}/> Voir les échéances <ArrowRight size={16}/></Link>
     <Link href="/inbox" className="quick-row"><MessageCircle size={19}/> Ouvrir les messages <ArrowRight size={16}/></Link>

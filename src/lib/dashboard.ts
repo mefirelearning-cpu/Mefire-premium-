@@ -18,7 +18,7 @@ export type DashboardMetrics={
 export async function getDashboardMetrics():Promise<DashboardMetrics>{
  const result=await db.execute(sql`
   SELECT
-   COALESCE((SELECT sum(amount) FROM payments WHERE status='verified' AND date_trunc('month',COALESCE(paid_at,created_at))=date_trunc('month',now())),0) AS monthly_revenue,
+   COALESCE((SELECT sum(amount) FROM payments WHERE status='verified' AND date_trunc('month',COALESCE(verified_at,paid_at,created_at) AT TIME ZONE 'Africa/Douala')=date_trunc('month',now() AT TIME ZONE 'Africa/Douala')),0) AS monthly_revenue,
    (SELECT count(*) FROM subscriptions WHERE status='active' AND (lifetime=true OR expires_at>now())) AS active_customers,
    (SELECT count(*) FROM subscriptions WHERE status='pending') AS activations,
    (SELECT count(*) FROM subscriptions WHERE status='active' AND lifetime=false AND expires_at>now() AND expires_at<=now()+interval '7 days') AS expiring_7d,
