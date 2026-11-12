@@ -28,7 +28,7 @@ export async function addSubscriptionAction(_previous:EntryState,form:FormData):
  }catch(e){
   return{error:e instanceof Error?e.message:'Une erreur empêche l’enregistrement'};
  }
- ['/','/clients','/abonnements','/commandes','/paiements','/activations','/jarvis'].forEach(revalidatePath);
+ ['/','/clients','/abonnements','/commandes','/paiements','/activations','/jarvis'].forEach(path=>revalidatePath(path));
  redirect(url);
 }
 export async function editSubscriptionAction(_previous:EntryState,form:FormData):Promise<EntryState>{
@@ -36,7 +36,7 @@ export async function editSubscriptionAction(_previous:EntryState,form:FormData)
  try{
   await updateManualSubscription({subscriptionId:field('subscriptionId'),expiresAt:field('expiresAt'),price:field('price')});
  }catch(e){return{error:e instanceof Error?e.message:'Modification impossible'};}
- ['/','/clients','/abonnements','/commandes','/paiements','/jarvis'].forEach(revalidatePath);
+ ['/','/clients','/abonnements','/commandes','/paiements','/jarvis'].forEach(path=>revalidatePath(path));
  redirect('/clients/'+field('customerId')+'?updated=1');
 }
 
@@ -48,6 +48,6 @@ export async function confirmManualPaymentAction(form:FormData){
  if(last?.status==='verified')throw new Error('Paiement déjà confirmé');
  const id=last?.status==='submitted'?last.id:(await recordPayment({orderId,method:'manuel'})).id;
  await verifyPayment({paymentId:id});
- ['/','/clients','/abonnements','/paiements','/commandes'].forEach(revalidatePath);
+ ['/','/clients','/abonnements','/paiements','/commandes'].forEach(path=>revalidatePath(path));
  redirect('/clients/'+customerId+'?payment=1');
 }
