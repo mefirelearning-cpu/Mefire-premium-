@@ -48,12 +48,12 @@ export async function createOrder(input:{customerId:string;servicePlanId:string}
 export async function recordPayment(input:{orderId:string;method?:string;reference?:string}){
  const [order]=await db.select().from(orders).where(eq(orders.id,input.orderId)).limit(1);
  if(!order)throw new Error('Commande introuvable');
- if(order.status==='paid'||order.status==='active')throw new Error('Cette commande est déjà payée');
+ if(order.status==='paid')throw new Error('Cette commande est déjà payée');
  const existing=await db.select({status:payments.status}).from(payments).where(eq(payments.orderId,order.id)).limit(10);
  if(existing.some(x=>x.status==='submitted'||x.status==='verified'))throw new Error('Un paiement est déjà en attente ou vérifié pour cette commande');
  const now=new Date();
  const [row]=await db.insert(payments).values({customerId:order.customerId,orderId:order.id,amount:order.total,currency:order.currency,method:input.method,reference:input.reference,status:'submitted',paidAt:now}).returning();
- await db.update(orders).set({status:'payment_submitted',updatedAt:now}).where(eq(orders.id,order.id));
+ if(order.status!=='active')await db.update(orders).set({status:'payment_submitted',updatedAt:now}).where(eq(orders.id,order.id));
  await db.insert(auditLogs).values({businessId:order.businessId,actorType:'admin',action:'payment.submitted',entityType:'payment',entityId:row.id,metadata:{orderId:order.id}});
  return row;
 }
@@ -69,7 +69,7 @@ export async function verifyPayment(input:{paymentId:string}){
  const now=new Date();
  const [verified]=await db.update(payments).set({status:'verified',verifiedAt:now,updatedAt:now}).where(and(eq(payments.id,p.id),or(eq(payments.status,'submitted'),eq(payments.status,'pending')))).returning();
  if(!verified)throw new Error('Paiement déjà traité');
- await db.update(orders).set({status:'paid',updatedAt:now}).where(eq(orders.id,order.id));
+ if(order.status!=='active')await db.update(orders).set({status:'paid',updatedAt:now}).where(eq(orders.id,order.id));
  await db.update(subscriptions).set({status:'pending',updatedAt:now}).where(and(eq(subscriptions.id,sub.id),eq(subscriptions.status,'awaiting_payment')));
  await db.insert(auditLogs).values({businessId:order.businessId,actorType:'admin',action:'payment.verified',entityType:'payment',entityId:p.id,metadata:{subscriptionId:sub.id,orderId:order.id}});
  return{payment:verified,subscriptionId:sub.id};
