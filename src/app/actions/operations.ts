@@ -6,3 +6,10 @@ export async function resolveSupportAction(f:FormData){await resolveSupportConve
 export async function pauseAutomationsAction(){await pauseAutomations();revalidatePath('/automatisations');revalidatePath('/');}
 export async function resumeAutomationsAction(){await resumeAutomations();revalidatePath('/automatisations');revalidatePath('/');}
 export async function toggleAutomationRuleAction(f:FormData){const id=val(f,'ruleId');const enabled=val(f,'enabled')==='true';await toggleAutomationRule(id,enabled);revalidatePath('/automatisations');}
+
+export async function synchronizeLifecycleAction(){
+ const {reconcileLifecycleJobs}=await import('@/lib/lifecycle-reconciliation');
+ await reconcileLifecycleJobs();
+ revalidatePath('/automatisations');
+ revalidatePath('/');
+}
