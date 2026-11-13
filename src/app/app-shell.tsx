@@ -13,7 +13,7 @@ const navigation=[
 ];
 function selected(pathname:string,href:string){
  if(href==='/')return pathname==='/';
- if(href==='/gestion')return pathname==='/gestion'||['/services','/paiements','/commandes','/activations','/depenses','/sav','/campagnes','/automatisations','/memoire','/mefire-ai','/statistiques','/parametres'].some(p=>pathname.startsWith(p));
+ if(href==='/gestion')return pathname==='/gestion'||['/priorites','/services','/paiements','/commandes','/activations','/depenses','/sav','/campagnes','/automatisations','/memoire','/mefire-ai','/statistiques','/parametres'].some(p=>pathname.startsWith(p));
  return pathname.startsWith(href);
 }
 export default function AppShell({children}:{children:React.ReactNode}){

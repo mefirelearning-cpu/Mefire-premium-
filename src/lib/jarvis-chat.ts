@@ -4,6 +4,7 @@ import {aiAdminCommands,businesses} from '@/db/schema';
 import {aiProviderStatus} from '@/lib/ai-provider';
 import {proposeAdminCommand} from '@/lib/admin-agent';
 import {answerPortfolioQuestion} from '@/lib/jarvis-portfolio';
+import {getPriorityQueue} from '@/lib/priority-queue';
 
 type Summary={ordersToday:number;ordersYesterday:number;activationsToday:number;activationsYesterday:number;verifiedPaymentsToday:number;cashToday:number;pendingPayments:number;pendingActivations:number;humanInterventions:number;expiringSevenDays:number};
 
@@ -73,6 +74,15 @@ export async function submitJarvisRequest(input:string){
  if(prompt.length<2)throw new Error('Message trop court');
  if(isGreeting(prompt))return saveReadOnlyReply(prompt,'À votre service, Monsieur. Demandez-moi le bilan du jour ou confiez-moi une tâche à préparer.',{kind:'greeting'});
  if(!isMutation(prompt)){
+  if(/\\b(priorit[eé]s?|urgent(?:es?)?|[àa] traiter|actions? prioritaires?|que dois.je faire|interventions? prioritaires?)\\b/i.test(prompt)){
+   const queue=await getPriorityQueue(20);
+   const response=queue.items.length
+    ? 'Bien, Monsieur. Voici les dossiers prioritaires à examiner :\\n\\n'+queue.items.slice(0,10).map((item,i)=>
+       (i+1)+'. '+item.customerName+' — '+item.serviceName+' : '+item.description).join('\\n')
+      +'\\n\\nConsultez /priorites pour ouvrir les fiches clients. Aucun message n’a été envoyé.'
+    : 'Monsieur, aucun dossier prioritaire n’a été détecté dans les données enregistrées. Consultez /priorites.';
+   return saveReadOnlyReply(prompt,response,{kind:'priority_queue',counts:queue.counts,items:queue.items.slice(0,10)});
+  }
   const portfolio=await answerPortfolioQuestion(prompt);
   if(portfolio)return saveReadOnlyReply(prompt,portfolio.response,portfolio.data);
  }
