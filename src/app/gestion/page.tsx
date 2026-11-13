@@ -2,7 +2,7 @@ import Link from 'next/link';
 import {ShoppingBasket,Wallet,Headset,SlidersHorizontal,ArrowUpRight} from 'lucide-react';
 export const dynamic='force-dynamic';
 const categories=[
- {title:'Ventes & commandes',desc:'Suivre les demandes, activations et paiements.',Icon:ShoppingBasket,links:[['Vue d’ensemble','/pilotage'],['Commandes','/commandes'],['Activations en attente','/activations'],['Paiements','/paiements']]},
+ {title:'Ventes & commandes',desc:'Suivre les demandes, activations et paiements.',Icon:ShoppingBasket,links:[['Vue d’ensemble','/pilotage'],['Actions prioritaires','/priorites'],['Commandes','/commandes'],['Activations en attente','/activations'],['Paiements','/paiements']]},
  {title:'Finances',desc:'Encaissements, dépenses et indicateurs.',Icon:Wallet,links:[['Coûts techniques','/depenses'],['Statistiques','/statistiques']]},
  {title:'Clients & suivi',desc:'Assistance, campagnes et rappels.',Icon:Headset,links:[['Service après-vente','/sav'],['Relances & automatisations','/automatisations'],['Campagnes','/campagnes']]},
  {title:'Configuration',desc:'Offres, mémoire et réglages de Jarvis.',Icon:SlidersHorizontal,links:[['Catalogue des offres','/services'],['Procédures enregistrées','/memoire'],['Actions avancées de Jarvis','/mefire-ai'],['Paramètres','/parametres']]}
