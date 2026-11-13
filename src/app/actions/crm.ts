@@ -1,6 +1,7 @@
 'use server';
 import {revalidatePath} from 'next/cache';
-import {activateSubscription,createCustomer,createOrder,createServiceWithPlan,recordPayment,verifyPayment} from '@/lib/crm';
+import {createCustomer,createOrder,createServiceWithPlan,recordPayment,verifyPayment} from '@/lib/crm';
+import {confirmSubscriptionActivation} from '@/lib/activation-first';
 const required=(v:FormDataEntryValue|null,n:string)=>{const s=String(v??'').trim();if(!s)throw new Error(`${n} requis`);return s};
 const refresh=(...paths:string[])=>paths.forEach(path=>revalidatePath(path));
 
@@ -32,6 +33,6 @@ export async function verifyPaymentAction(form:FormData){
 }
 
 export async function activateSubscriptionAction(form:FormData){
- await activateSubscription({subscriptionId:required(form.get('subscriptionId'),'Abonnement')});
- refresh('/activations','/abonnements','/commandes','/');
+ await confirmSubscriptionActivation({subscriptionId:required(form.get('subscriptionId'),'Abonnement'),expiresAt:String(form.get('expiresAt')||'')});
+ refresh('/activations','/abonnements','/commandes','/clients','/priorites','/pilotage','/automatisations','/');
 }

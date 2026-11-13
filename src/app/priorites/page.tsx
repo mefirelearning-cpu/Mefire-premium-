@@ -7,7 +7,7 @@ export default async function Priorites(){
  return <div className="page-container">
   <div className="page-header"><div><div className="eyebrow">SUPERVISION JARVIS</div><h1>Actions prioritaires</h1><p>Les dossiers qui demandent votre attention, classés automatiquement.</p></div><Link className="outline-link" href="/pilotage">Vue d’ensemble →</Link></div>
   <div className="summary-grid">
-   {([['À traiter',counts.total],['Captures reçues',counts.payment],['Expirés',counts.expired],['Renouvellements (7 j)',counts.expiring],['Activations en attente',counts.activation]] as const).map(([name,value])=><div key={name} className="stat-small"><span>{name}</span><strong>{value}</strong></div>)}
+   {([['À traiter',counts.total],['Captures reçues',counts.payment],['Paiements en retard',counts.overdue],['Expirés',counts.expired],['Renouvellements (7 j)',counts.expiring],['Activations en attente',counts.activation]] as const).map(([name,value])=><div key={name} className="stat-small"><span>{name}</span><strong>{value}</strong></div>)}
   </div>
   <section className="surface"><h2>File d’intervention</h2><p className="muted">Cette liste est en lecture seule. Aucune action ni aucun message n’est envoyé automatiquement depuis cette page.</p>
   {items.length===0?<p className="empty-state">Aucune priorité détectée dans les dossiers enregistrés.</p>:<div className="directory-list">

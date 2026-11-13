@@ -22,7 +22,7 @@ export async function handlePaymentHandoff(input:{item:IncomingWhatsApp;customer
  if(!customer)return{handled:false as const};
 
  if(input.item.type==='text'&&paymentClaim.test(input.item.text)){
-  const text='Merci. Pour que nous puissions lancer la procédure d’activation, envoyez s’il vous plaît une capture d’écran du paiement ici.';
+  const text='Merci pour votre message. Si vous avez effectué le règlement, vous pouvez envoyer votre capture de paiement ici. Elle sera examinée par notre équipe.';
   await saveOutgoing(input.conversationId,customer.phone,text);
   return{handled:true as const,action:'request_payment_proof' as const};
  }
@@ -32,7 +32,7 @@ export async function handlePaymentHandoff(input:{item:IncomingWhatsApp;customer
   await db.update(conversations).set({humanTakeover:true,aiEnabled:false,lastMessageAt:now,updatedAt:now}).where(eq(conversations.id,input.conversationId));
   await db.update(customers).set({nextActionAt:now,updatedAt:now}).where(eq(customers.id,customer.id));
   await db.insert(auditLogs).values({businessId:customer.businessId,actorType:'customer',action:'payment.proof_received',entityType:'conversation',entityId:input.conversationId,metadata:{customerId:customer.id,messageId:input.messageId||null,mediaId:input.item.mediaId}});
-  const text='Merci, nous avons bien reçu votre capture. Nous allons maintenant entamer la procédure d’activation. Merci de patienter quelques minutes s’il vous plaît.';
+  const text='Merci, nous avons reçu votre capture de paiement. Elle est transmise pour vérification. Nous vous tiendrons informé de la suite.';
   await saveOutgoing(input.conversationId,customer.phone,text);
   return{handled:true as const,action:'payment_proof_received' as const,humanTakeover:true as const};
  }
