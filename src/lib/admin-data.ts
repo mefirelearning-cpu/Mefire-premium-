@@ -1,4 +1,4 @@
-import {and,desc,eq} from 'drizzle-orm';
+import {and,desc,eq,inArray} from 'drizzle-orm';
 import {db} from '@/db';
 import {auditLogs,conversations,customers,orders,payments,servicePlans,services,subscriptions} from '@/db/schema';
 
@@ -19,7 +19,7 @@ export async function listPayments(){
 }
 
 export async function listPendingActivations(){
- return db.select({subscriptionId:subscriptions.id,orderId:subscriptions.orderId,firstName:customers.firstName,lastName:customers.lastName,phone:customers.phone,planName:servicePlans.name,serviceName:services.name,durationDays:servicePlans.durationDays,lifetime:servicePlans.lifetime}).from(subscriptions).innerJoin(customers,eq(subscriptions.customerId,customers.id)).innerJoin(servicePlans,eq(subscriptions.servicePlanId,servicePlans.id)).innerJoin(services,eq(servicePlans.serviceId,services.id)).where(eq(subscriptions.status,'pending')).orderBy(desc(subscriptions.createdAt)).limit(100);
+ return db.select({subscriptionId:subscriptions.id,orderId:subscriptions.orderId,firstName:customers.firstName,lastName:customers.lastName,phone:customers.phone,planName:servicePlans.name,serviceName:services.name,durationDays:servicePlans.durationDays,lifetime:servicePlans.lifetime,expiresAt:subscriptions.expiresAt,status:subscriptions.status}).from(subscriptions).innerJoin(customers,eq(subscriptions.customerId,customers.id)).innerJoin(servicePlans,eq(subscriptions.servicePlanId,servicePlans.id)).innerJoin(services,eq(servicePlans.serviceId,services.id)).where(inArray(subscriptions.status,['pending','awaiting_payment'])).orderBy(desc(subscriptions.createdAt)).limit(100);
 }
 
 export async function listSubscriptions(){
