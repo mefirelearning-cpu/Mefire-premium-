@@ -1,6 +1,6 @@
 'use server';
 import {revalidatePath} from 'next/cache';
-import {createMemoryEntry,toggleMemoryEntry} from '@/lib/commercial-memory';
+import {approveSupportProcedure,createMemoryEntry,toggleMemoryEntry} from '@/lib/commercial-memory';
 import {importWhatsAppChat} from '@/lib/whatsapp-import';
 
 const value=(form:FormData,key:string)=>String(form.get(key)??'').trim();
@@ -39,4 +39,13 @@ export async function importWhatsAppHistoryAction(form:FormData){
  revalidatePath('/memoire');
  revalidatePath('/clients');
  revalidatePath('/inbox');
+}
+
+
+export async function approveSupportProcedureAction(form:FormData){
+ const id=value(form,'id');
+ if(!id)throw new Error('Proposition de procédure requise');
+ await approveSupportProcedure(id);
+ revalidatePath('/memoire');
+ revalidatePath('/jarvis');
 }
