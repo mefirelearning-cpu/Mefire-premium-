@@ -1,6 +1,6 @@
 import {and,desc,eq} from 'drizzle-orm';
 import {db} from '@/db';
-import {businesses,commercialMemory,conversations,customers,messages,servicePlans,services,subscriptions} from '@/db/schema';
+import {auditLogs,businesses,commercialMemory,conversations,customers,messages,servicePlans,services,subscriptions} from '@/db/schema';
 
 async function getBusinessId(){
  const [business]=await db.select({id:businesses.id}).from(businesses).limit(1);
@@ -22,6 +22,67 @@ export async function createMemoryEntry(input:{kind:string;title?:string;content
 export async function toggleMemoryEntry(id:string,active:boolean){
  const [row]=await db.update(commercialMemory).set({active,updatedAt:new Date()}).where(eq(commercialMemory.id,id)).returning();
  if(!row)throw new Error('Mémoire introuvable');
+ return row;
+}
+
+
+
+/**
+ * Une solution issue d'une intervention humaine est enregistrée comme brouillon.
+ * Elle ne sera jamais injectée dans le contexte de l'IA avant validation explicite.
+ */
+export async function proposeSupportProcedure(input:{
+ conversationId:string;title:string;serviceName?:string;symptom:string;resolution:string;
+}){
+ const businessId=await getBusinessId();
+ const title=input.title.trim(),serviceName=(input.serviceName||'').trim();
+ const symptom=input.symptom.trim(),resolution=input.resolution.trim();
+ if(title.length<4||title.length>160)throw new Error('Le titre doit contenir entre 4 et 160 caractères.');
+ if(symptom.length<12||symptom.length>2500)throw new Error('Décris le symptôme en 12 à 2 500 caractères.');
+ if(resolution.length<12||resolution.length>2500)throw new Error('Décris la solution en 12 à 2 500 caractères.');
+ if(serviceName.length>100)throw new Error('Le nom du service est trop long.');
+ const displayTitle=serviceName?serviceName+' — '+title:title;
+ if(displayTitle.length>180)throw new Error('Raccourcis le nom du service ou le titre : 180 caractères maximum au total.');
+ const fullText=[title,serviceName,symptom,resolution].join('\n');
+ const secretPatterns=[
+  /\b(?:mot de passe|password|mdp)\s*(?:[:=]|est)\s*\S+/i,
+  /\b(?:otp|code de vérification|code de validation|code reçu par sms)\b(?:\s+(?:est|:|=))?\s*\d{4,8}\b/i,
+  /\b(?:token|secret key|clé secrète|api key)\s*[:=]\s*\S+/i
+ ];
+ if(secretPatterns.some(pattern=>pattern.test(fullText)))throw new Error('Ne stocke aucun mot de passe, code de vérification, OTP ou secret. Décris uniquement la procédure générale.');
+ if(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i.test(fullText))throw new Error('Ne stocke pas d’adresse e-mail personnelle dans une procédure générale.');
+ const [conversation]=await db.select({id:conversations.id}).from(conversations)
+  .innerJoin(customers,eq(conversations.customerId,customers.id))
+  .where(and(eq(conversations.id,input.conversationId),eq(customers.businessId,businessId),eq(conversations.status,'open'),eq(conversations.humanTakeover,true)))
+  .limit(1);
+ if(!conversation)throw new Error('Prends d’abord la main sur une conversation ouverte avant de proposer une procédure.');
+ const [existing]=await db.select({id:commercialMemory.id}).from(commercialMemory)
+  .where(and(eq(commercialMemory.businessId,businessId),eq(commercialMemory.sourceRef,input.conversationId)))
+  .limit(1);
+ if(existing)throw new Error('Une proposition existe déjà pour cette conversation. Vérifie-la dans la mémoire commerciale.');
+ const content=[
+  serviceName?'Service concerné : '+serviceName:'Service concerné : non précisé',
+  'Problème : '+title,
+  'Symptômes observés : '+symptom,
+  'Solution testée par un humain : '+resolution,
+  'Consigne pour JARVIS : appliquer uniquement si le symptôme du client correspond à ce cas. Ne jamais demander de mot de passe, de code OTP ou de code de vérification. Si la procédure ne résout pas le problème, transférer à un humain.'
+ ].join('\n');
+ const [row]=await db.insert(commercialMemory).values({
+  businessId,customerId:null,kind:'knowledge',title:displayTitle,
+  content,language:'fr',sourceType:'support_pending',sourceRef:input.conversationId,active:false,weight:110
+ }).returning();
+ if(!row)throw new Error('Impossible d’enregistrer la proposition de procédure.');
+ await db.insert(auditLogs).values({businessId,actorType:'admin',action:'support.procedure.proposed',entityType:'commercial_memory',entityId:row.id,metadata:{conversationId:input.conversationId,serviceName:serviceName||null}});
+ return row;
+}
+
+export async function approveSupportProcedure(id:string){
+ const businessId=await getBusinessId();
+ const [row]=await db.update(commercialMemory).set({active:true,sourceType:'support_approved',updatedAt:new Date()})
+  .where(and(eq(commercialMemory.id,id),eq(commercialMemory.businessId,businessId),eq(commercialMemory.kind,'knowledge'),eq(commercialMemory.sourceType,'support_pending'),eq(commercialMemory.active,false)))
+  .returning();
+ if(!row)throw new Error('Cette proposition est introuvable ou a déjà été traitée.');
+ await db.insert(auditLogs).values({businessId,actorType:'admin',action:'support.procedure.approved',entityType:'commercial_memory',entityId:row.id,metadata:{sourceRef:row.sourceRef}});
  return row;
 }
 
@@ -86,5 +147,5 @@ export async function buildCommercialMemoryContext(input:{customerId:string;conv
 
 export async function memoryStats(){
  const rows=await listMemoryEntries();
- return {total:rows.length,active:rows.filter(x=>x.active).length,style:rows.filter(x=>x.kind==='style'&&x.active).length,importedStyle:rows.filter(x=>x.kind==='style'&&x.active&&x.sourceType==='whatsapp_import').length,knowledge:rows.filter(x=>(x.kind==='knowledge'||x.kind==='policy')&&x.active).length,customerNotes:rows.filter(x=>x.kind==='customer_note'&&x.active).length};
+ return {total:rows.length,active:rows.filter(x=>x.active).length,style:rows.filter(x=>x.kind==='style'&&x.active).length,importedStyle:rows.filter(x=>x.kind==='style'&&x.active&&x.sourceType==='whatsapp_import').length,knowledge:rows.filter(x=>(x.kind==='knowledge'||x.kind==='policy')&&x.active).length,customerNotes:rows.filter(x=>x.kind==='customer_note'&&x.active).length,supportPending:rows.filter(x=>x.sourceType==='support_pending').length,supportApproved:rows.filter(x=>x.sourceType==='support_approved'&&x.active).length};
 }
